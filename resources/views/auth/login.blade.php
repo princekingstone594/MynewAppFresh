@@ -1,55 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+@extends('layouts.guest')
 
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
+@section('content')
 
-<body class="bg-gray-100 flex items-center justify-center h-screen">
+<h2 class="text-2xl font-bold mb-4">Login</h2>
 
-    <div class="bg-white w-full max-w-md p-8 rounded shadow">
+<form method="POST" action="{{ route('login') }}" class="space-y-4">
+    @csrf
 
-        <h1 class="text-2xl font-bold text-center mb-6">
-            Welcome Back 👋
-        </h1>
+    <input type="email" name="email" placeholder="Email"
+        class="w-full border p-2 rounded" required>
 
-        @if(session('error'))
-            <div class="bg-red-100 text-red-700 p-2 mb-4 rounded">
-                {{ session('error') }}
-            </div>
-        @endif
+    <input type="password" name="password" placeholder="Password"
+        class="w-full border p-2 rounded" required>
 
-        <form method="POST" action="/login" class="space-y-4">
-            @csrf
+    <div class="flex items-center justify-between">
+        <label class="flex items-center gap-2">
+            <input type="checkbox" name="remember">
+            Remember me
+        </label>
 
-            <div>
-                <label class="block text-sm font-medium">Email</label>
-                <input type="email" name="email"
-                    class="w-full border p-2 rounded mt-1"
-                    required>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium">Password</label>
-                <input type="password" name="password"
-                    class="w-full border p-2 rounded mt-1"
-                    required>
-            </div>
-
-            <button class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-                Login
-            </button>
-        </form>
-
-        <p class="text-center text-sm mt-4">
-            Don't have an account?
-            <a href="/register" class="text-blue-600">Register</a>
-        </p>
-
+        <a href="/register" class="text-indigo-600 text-sm">
+            Create account
+        </a>
     </div>
 
-</body>
-</html>
+    <button class="w-full bg-indigo-600 text-white py-2 rounded">
+        Login
+    </button>
+</form>
+
+@endsection

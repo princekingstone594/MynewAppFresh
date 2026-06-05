@@ -3,164 +3,113 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Project;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
-use Illuminate\Support\Facades\Hash;
 
-class AuthController extends Controller
+class ProjectController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | SHOW AUTH PAGES
-    |--------------------------------------------------------------------------
-    */
-
-    public function showRegister()
+    /**
+     * SECURITY HELPER (VERY IMPORTANT)
+     */
+    private function authorizeProject($project)
     {
-        return view('auth.register');
-    }
-
-    public function showLogin()
-    {
-        return view('auth.login');
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | REGISTER USER
-    |--------------------------------------------------------------------------
-    */
-
-    public function register(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users',
-            'password' => 'required|min:6',
-        ]);
-
-        User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'user',
-        ]);
-
-        return redirect('/login')->with('success', 'Account created successfully');
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | LOGIN USER (ROLE-BASED REDIRECT)
-    |--------------------------------------------------------------------------
-    */
-
-    public function login(Request $request)
-    {
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
-
-        if (Auth::attempt($credentials)) {
-
-            $request->session()->regenerate();
-
-            $user = Auth::user();
-
-            if ($user->role === 'admin') {
-                return redirect('/admin');
-            }
-
-            return redirect('/dashboard');
+        if ($project->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized');
         }
-
-        return back()->withErrors([
-            'email' => 'Invalid email or password',
-        ]);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | LOGOUT USER
-    |--------------------------------------------------------------------------
-    */
-
-    public function logout(Request $request)
+    /**
+     * Display all projects
+     */
+    public function index()
     {
-        Auth::logout();
+        $projects = Project::where('user_id', Auth::id())->latest()->get();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return redirect('/login');
+        return view('projects.index', compact('projects'));
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | USER DASHBOARD
-    |--------------------------------------------------------------------------
-    */
-
-    public function dashboard()
+    /**
+     * Show create form
+     */
+    public function create()
     {
-        return view('dashboard');
+        return view('projects.create');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | ADMIN DASHBOARD
-    |--------------------------------------------------------------------------
-    */
-
-    public function admin()
-    {
-        return view('admin');
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | ADMIN - VIEW USERS
-    |--------------------------------------------------------------------------
-    */
-
-    public function users()
-    {
-        $users = User::latest()->get();
-
-        return view('admin.users', compact('users'));
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | ADMIN - UPDATE USER ROLE
-    |--------------------------------------------------------------------------
-    */
-
-    public function updateRole(Request $request, $id)
+    /**
+     * Store new project
+     */
+    public function store(Request $request)
     {
         $request->validate([
-            'role' => 'required|in:user,admin',
+            'name' => 'required|max:255',
+            'description' => 'nullable',
         ]);
 
-        $user = User::findOrFail($id);
-        $user->role = $request->role;
-        $user->save();
+        Project::create([
+            'user_id' => Auth::id(),
+            'name' => $request->name,
+            'description' => $request->description,
+            'status' => 'active',
+        ]);
 
-        return back()->with('success', 'User role updated successfully');
+        return redirect()->route('projects.index')
+            ->with('success', 'Project created successfully');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | ADMIN - DELETE USER
-    |--------------------------------------------------------------------------
-    */
-
-    public function deleteUser($id)
+    /**
+     * Show single project
+     */
+    public function show(Project $project)
     {
-        $user = User::findOrFail($id);
-        $user->delete();
+        $this->authorizeProject($project);
 
-        return back()->with('success', 'User deleted successfully');
+        return view('projects.show', compact('project'));
+    }
+
+    /**
+     * Show edit form
+     */
+    public function edit(Project $project)
+    {
+        $this->authorizeProject($project);
+
+        return view('projects.edit', compact('project'));
+    }
+
+    /**
+     * Update project
+     */
+    public function update(Request $request, Project $project)
+    {
+        $this->authorizeProject($project);
+
+        $request->validate([
+            'name' => 'required|max:255',
+            'description' => 'nullable',
+            'status' => 'required',
+        ]);
+
+        $project->update([
+            'name' => $request->name,
+            'description' => $request->description,
+            'status' => $request->status,
+        ]);
+
+        return redirect()->route('projects.index')
+            ->with('success', 'Project updated successfully');
+    }
+
+    /**
+     * Delete project
+     */
+    public function destroy(Project $project)
+    {
+        $this->authorizeProject($project);
+
+        $project->delete();
+
+        return redirect()->route('projects.index')
+            ->with('success', 'Project deleted successfully');
     }
 }
